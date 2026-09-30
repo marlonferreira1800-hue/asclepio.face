@@ -19,11 +19,14 @@ class Camera:
         except ImportError:
             return []
         found: list[int] = []
+        backends = [cv2.CAP_MSMF, cv2.CAP_ANY, cv2.CAP_DSHOW]
         for index in range(limit):
-            capture = cv2.VideoCapture(index, cv2.CAP_DSHOW)
-            if capture.isOpened():
-                found.append(index)
-            capture.release()
+            for backend in backends:
+                capture = cv2.VideoCapture(index, backend)
+                if capture.isOpened():
+                    found.append(index)
+                    capture.release()
+                    break
         return found
 
     def open(self, index: int) -> None:
@@ -32,13 +35,32 @@ class Camera:
         except ImportError as exc:
             raise CameraError("OpenCV não está instalado") from exc
         self.cv2 = cv2
-        self.capture = cv2.VideoCapture(index, cv2.CAP_DSHOW)
-        if not self.capture.isOpened():
+
+        backends = [cv2.CAP_MSMF, cv2.CAP_ANY, cv2.CAP_DSHOW]
+        chosen = None
+        for backend in backends:
+            cap = cv2.VideoCapture(index, backend)
+            if cap.isOpened():
+                # Configura propriedades de captura
+                cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+                cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+                cap.set(cv2.CAP_PROP_FPS, 30)
+
+                # Verifica se o backend entrega imagem com iluminação
+                ok, test_frame = cap.read()
+                if ok and test_frame is not None and test_frame.mean() > 1.0:
+                    chosen = cap
+                    break
+                if chosen is None:
+                    chosen = cap
+                else:
+                    cap.release()
+
+        if chosen is None or not chosen.isOpened():
             self.release()
             raise CameraError(f"Não foi possível abrir a câmera {index}")
-        self.capture.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.capture.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-        self.capture.set(cv2.CAP_PROP_FPS, 30)
+
+        self.capture = chosen
 
     def read(self):
         if self.capture is None:
@@ -52,3 +74,4 @@ class Camera:
         if self.capture is not None:
             self.capture.release()
         self.capture = None
+

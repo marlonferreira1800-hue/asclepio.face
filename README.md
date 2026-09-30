@@ -26,7 +26,17 @@ Calor, exercício, cafeína, movimento, iluminação, doenças, medicamentos, ca
 - resumo, SQLite opcional, CSV e exclusão de sessões;
 - encerramento limpo e mensagens para câmera/dependência ausente.
 
-## Instalação no Windows
+## Versão Web & Deploy no Netlify
+
+O projeto conta com uma versão Web completa em HTML5, CSS e JavaScript (client-side) compatível com **Netlify**, **Vercel** e **GitHub Pages**:
+
+1. Acesse [app.netlify.com](https://app.netlify.com/) e entre com sua conta do GitHub.
+2. Clique em **"Add new site"** > **"Import an existing project"**.
+3. Escolha o repositório `marlonferreira1800-hue/asclepio.face`.
+4. Como o projeto já possui o [`netlify.toml`](file:///c:/Users/marlo/Downloads/Face%20inteligente/netlify.toml), basta clicar em **Deploy**.
+5. O site será publicado instantaneamente com HTTPS e permissão de webcam!
+
+## Instalação Desktop (Windows)
 
 Recomenda-se Python 3.11. O MediaPipe ainda pode não oferecer pacote para todas as versões mais recentes do Python; nesse caso, o aplicativo usa o modo reduzido do OpenCV.
 

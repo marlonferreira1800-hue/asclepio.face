@@ -31,7 +31,10 @@ def main() -> int:
     try:
         window = MainWindow(autostart=args.autostart, auto_calibrate=args.calibrate)
         window.show()
+        window.raise_()
+        window.activateWindow()
         return app.exec()
+
 
     except Exception as exc:  # barreira final para falhas de inicialização
         QMessageBox.critical(None, "Falha ao iniciar", str(exc))

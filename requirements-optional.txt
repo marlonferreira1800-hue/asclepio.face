@@ -1,0 +1,2 @@
+# Rastreamento facial detalhado e piscadas. O app funciona em modo reduzido sem ele.
+mediapipe>=0.10.14

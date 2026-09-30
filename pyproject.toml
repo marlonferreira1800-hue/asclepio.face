@@ -1,0 +1,12 @@
+[project]
+name = "face-inteligente"
+version = "0.1.0"
+description = "Protótipo local de estimativa de ativação fisiológica por webcam"
+requires-python = ">=3.11,<3.13"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

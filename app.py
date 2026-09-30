@@ -18,13 +18,21 @@ def main() -> int:
 
     from src.ui.main_window import MainWindow
 
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Face Inteligente")
+    parser.add_argument("--autostart", action="store_true", help="Inicia a câmera automaticamente")
+    parser.add_argument("--calibrate", action="store_true", help="Inicia calibração automaticamente")
+    args, _ = parser.parse_known_args()
+
     app = QApplication(sys.argv)
     app.setApplicationName("Face Inteligente")
     app.setOrganizationName("Face Inteligente")
     try:
-        window = MainWindow()
+        window = MainWindow(autostart=args.autostart, auto_calibrate=args.calibrate)
         window.show()
         return app.exec()
+
     except Exception as exc:  # barreira final para falhas de inicialização
         QMessageBox.critical(None, "Falha ao iniciar", str(exc))
         return 2

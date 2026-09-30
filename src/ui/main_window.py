@@ -41,12 +41,15 @@ from .widgets import APP_STYLE, ConsentDialog, MetricCard
 
 
 class MainWindow(QMainWindow):
-    def __init__(self) -> None:
+    def __init__(self, autostart: bool = False, auto_calibrate: bool = False) -> None:
         super().__init__()
         self.setWindowTitle("Face Inteligente — protótipo local")
         self.resize(1280, 800)
         self.setMinimumSize(1050, 680)
         self.setStyleSheet(APP_STYLE)
+
+        self._autostart = autostart
+        self._auto_calibrate = auto_calibrate
 
         icon_path = Path("assets/icon.png")
         if icon_path.exists():
@@ -63,6 +66,11 @@ class MainWindow(QMainWindow):
         self._setup_shortcuts()
         self._refresh_cameras()
         self._refresh_history()
+
+        if self._autostart:
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(400, self._auto_start)
+
 
     def _build_ui(self) -> None:
         root = QWidget()
@@ -304,7 +312,31 @@ class MainWindow(QMainWindow):
         self.calibrate_button.setEnabled(True)
         self.status_detail.setText("Câmera ativa em thread dedicada. Faça a calibração em repouso.")
 
+    def _auto_start(self) -> None:
+        index = self.camera_combo.currentData()
+        if index is None:
+            return
+        self.samples.clear()
+        self.session_started_wall = datetime.now().astimezone()
+
+        self.worker = VideoWorker(int(index), float(self.duration.value()), self)
+        self.worker.frame_ready.connect(self._on_frame_ready)
+        self.worker.calibration_progress.connect(self._on_calibration_progress)
+        self.worker.calibration_finished.connect(self._on_calibration_finished)
+        self.worker.camera_error.connect(self._on_camera_error)
+        self.worker.start()
+
+        self.start_button.setEnabled(False)
+        self.stop_button.setEnabled(True)
+        self.calibrate_button.setEnabled(True)
+        self.status_detail.setText("Câmera ativa automaticamente em thread dedicada. Faça a calibração em repouso.")
+
+        if self._auto_calibrate:
+            from PySide6.QtCore import QTimer
+            QTimer.singleShot(1500, self._start_calibration)
+
     def _start_calibration(self) -> None:
+
         if self.worker is not None:
             self.worker.start_calibration(float(self.duration.value()))
             self.calibrate_button.setEnabled(False)

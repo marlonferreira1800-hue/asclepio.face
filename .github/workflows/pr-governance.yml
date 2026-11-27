@@ -1,0 +1,75 @@
+name: PR Governance & Rigor
+
+on:
+  pull_request_target:
+    types: [opened, reopened, synchronize, edited]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  governance:
+    name: PR Governance & Rigor
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validar limite de 5 mudanças por usuário e rigor do PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pr = context.payload.pull_request;
+            const author = pr.user.login;
+            const repoOwner = 'marlonferreira1800-hue';
+
+            // 1. Validar rigor do PR (título e descrição)
+            const title = (pr.title || '').trim();
+            const body = (pr.body || '').trim();
+            const errors = [];
+
+            if (title.length < 10) {
+              errors.push('- O título do PR deve ter pelo menos 10 caracteres descrevendo a mudança.');
+            }
+            if (body.length < 20) {
+              errors.push('- A descrição do PR deve ter pelo menos 20 caracteres explicando o que foi alterado.');
+            }
+
+            // 2. Validar limite de 5 mudanças (PRs abertos + mergeados) para usuários externos
+            if (author.toLowerCase() !== repoOwner.toLowerCase()) {
+              const openQuery = `repo:${owner}/${repo} is:pr author:${author} is:open`;
+              const mergedQuery = `repo:${owner}/${repo} is:pr author:${author} is:merged`;
+
+              const [openRes, mergedRes] = await Promise.all([
+                github.rest.search.issuesAndPullRequests({ q: openQuery, per_page: 1 }),
+                github.rest.search.issuesAndPullRequests({ q: mergedQuery, per_page: 1 })
+              ]);
+
+              const totalChanges = openRes.data.total_count + mergedRes.data.total_count;
+              core.info(`Autor: ${author} | PRs abertos: ${openRes.data.total_count} | PRs mergeados: ${mergedRes.data.total_count} | Total: ${totalChanges}`);
+
+              if (totalChanges > 5) {
+                errors.push(`- Limite atingido: a conta @${author} já possui ${totalChanges} Pull Requests (abertos + mergeados) neste repositório. O limite máximo permitido é de 5 mudanças por usuário.`);
+              }
+            }
+
+            if (errors.length > 0) {
+              const message = [
+                '### ⛔ Pull Request bloqueado pela Governança do Repositório',
+                '',
+                ...errors,
+                '',
+                `Apenas mudanças aprovadas pelo proprietário (@${repoOwner}) e dentro dos critérios de rigor são aceitas.`
+              ].join('\n');
+
+              await github.rest.issues.createComment({
+                owner,
+                repo,
+                issue_number: pr.number,
+                body: message
+              });
+
+              core.setFailed(errors.join(' | '));
+            } else {
+              core.info('PR aprovado nos critérios de rigor e dentro do limite de 5 mudanças por usuário.');
+            }
